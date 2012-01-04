@@ -1,0 +1,173 @@
+package com.precipicegames.elorank;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class RankManager {
+	private HashSet<RankEntity> loadedranks;
+	private Queue<RankEntity> saveQ;
+	private JavaPlugin plugin;
+	private AsyncSaver saver;
+	private ConfigurationSection config;
+	
+	public RankManager(JavaPlugin plugin, ConfigurationSection config) {
+		this.plugin = plugin;
+		this.config = config;
+		saver = new AsyncSaver();
+		saveQ = new LinkedList<RankEntity>();
+		loadedranks = new HashSet<RankEntity>();
+		plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new EntityCleaner(), 20*(60*2));
+	}
+	
+	//Gets the current rank of the specified entity
+	public double getRank(RankEntity entity) {
+		return 0;
+	}
+	
+	//Sets the absolute rank of the entity
+	public void setRank(RankEntity entity, double newrank) {
+		entity.setRank(newrank);
+		return;
+	}
+	
+	public void broadcastUpdate(PlayerRankEntity playerentity) {
+		Player p = plugin.getServer().getPlayer(playerentity.getPlayer());
+		if(p != null) {
+			p.sendMessage("ELO rank: " + Math.round(playerentity.getRank()));
+		}
+	}
+	public void broadcastUpdate(PlayerRankEntity playerentity, double oldrank) {
+		Player p = plugin.getServer().getPlayer(playerentity.getPlayer());
+		if(p != null) {
+			p.sendMessage("ELO rank: " + Math.round(playerentity.getRank()));
+			p.sendMessage("Was: " + Math.round(oldrank) + ", thats a change of: " + Math.round(playerentity.getRank() - oldrank));
+		}
+	}
+	
+	//Get the rank entity for the specified player
+	public PlayerRankEntity getPlayerRankEntity(Player player) {
+		return getPlayerRankEntity(player.getName());
+	}
+	
+	//Get the rank entity for the specified player
+	public PlayerRankEntity getPlayerRankEntity(String name) {
+		return null;
+	}
+	
+	protected void updateRank(RankEntity ra, double compare, double result) {
+		setRank(ra,ra.calculate(compare, result));
+		return;
+	}
+	
+	public void scheduleSave(RankEntity entity) {
+		boolean empty = saveQ.isEmpty();
+		saveQ.offer(entity);
+		if(empty) {
+			plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, saver, 20);
+		}
+	}
+	public void saveAll(boolean async) {
+		Iterator<RankEntity> entities = loadedranks.iterator();
+		while(entities.hasNext()) {
+			RankEntity entity = entities.next();
+			if(async) {
+				scheduleSave(entity);
+			} else {
+				entity.save();
+			}
+		}
+	}
+	public boolean isOld(RankEntity entity) {
+		return false;
+	}
+	private class EntityCleaner implements Runnable {
+		public void run() {
+			Iterator<RankEntity> entities = loadedranks.iterator();
+			while(entities.hasNext()) {
+				RankEntity entity = entities.next();
+				if(isOld(entity)) {
+					scheduleSave(entity);
+				}
+			}
+		}
+	}
+	protected void checkPlayerTimeout(PlayerRankEntity playerentity)
+	{
+		
+		boolean changed = false;
+		long timespent = System.currentTimeMillis() - playerentity.getPlayerLastUpdate();
+		long timethreshold = config.getLong("playerkilltimeout",1000*60*60*24);
+		//long penaltyfactor = config.getLong("playerpenaltyfactor",1000*60*60*24);
+		if(timespent >= timethreshold)
+		{
+			double deltafactor = (timespent-timethreshold)/timethreshold;
+			double maxrank = (playerentity.getEnvironmentRank().getRank() + 1500) - (deltafactor*50);
+			if(playerentity.getRank() > maxrank) {
+				playerentity.setRank(maxrank);
+				changed = true;
+			}
+			
+		}
+		if(changed) {
+			Player p = plugin.getServer().getPlayer(playerentity.getPlayer());
+			if(p != null) {
+				p.sendMessage("Due to pvp inactivity your rank has been adjusted and is now: " + Math.round(playerentity.getRank()));
+			}
+		}
+	}
+	private class AsyncSaver implements Runnable {
+		public void run() {
+			RankEntity entity = saveQ.poll();
+			if(entity != null && loadedranks.contains(entity)) {
+				entity.save();
+				if(isOld(entity)) {
+					loadedranks.remove(entity);
+				}
+			}
+			if(!saveQ.isEmpty()) {
+				plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, this, 20);
+			}
+		}
+	}
+	public void performupdate(Player hitter, Player victim) {
+		
+		//The environment/monster killed the player
+		if(hitter == null && victim != null){
+			PlayerRankEntity entity = this.getPlayerRankEntity(victim);
+			EnvironmentRankEntity env = entity.getEnvironmentRank();
+			double envold = env.getRank();
+			double eold = entity.getRank();
+			this.updateRank(env, eold, 1);
+			this.updateRank(entity, envold, 0);
+		}
+		
+		//The player killed a monster/mob
+		if(hitter != null && victim == null){
+			PlayerRankEntity entity = this.getPlayerRankEntity(hitter);
+			EnvironmentRankEntity env = entity.getEnvironmentRank();
+			double envold = env.getRank();
+			double eold = entity.getRank();
+			this.updateRank(entity, envold, 1);
+			this.updateRank(env, eold, 0);
+		}
+		
+		//The player killed another player
+		if(hitter != null && victim != null){
+			PlayerRankEntity entity = this.getPlayerRankEntity(hitter);
+			PlayerRankEntity ventity = this.getPlayerRankEntity(victim);
+			double vold = ventity.getRank();
+			double eold = entity.getRank();
+			this.updateRank(entity, vold , 1);
+			this.updateRank(ventity, eold, 0);
+		}
+		
+		// TODO Auto-generated method stub
+		
+	}
+}

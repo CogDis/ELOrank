@@ -1,0 +1,14 @@
+author: Elias Woods
+database: false
+description: plugin to track elo rankings of players
+main: com.precipicegames.elorank.eloplugin
+name: ELOrank
+startup: postworld
+url: http://precipicegames.com/
+version: '0.1'
+commands:
+    elo:
+       description: Shows your elo
+       usage: |
+            /elo
+
