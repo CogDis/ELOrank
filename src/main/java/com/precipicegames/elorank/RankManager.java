@@ -1,6 +1,7 @@
 package com.precipicegames.elorank;
 
-import java.util.HashSet;
+import java.io.File;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -10,18 +11,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class RankManager {
-	private HashSet<RankEntity> loadedranks;
+	//private HashSet<RankEntity> loadedranks;
+	private HashMap<String,PlayerRankEntity> loadedranks;
 	private Queue<RankEntity> saveQ;
 	private JavaPlugin plugin;
 	private AsyncSaver saver;
 	private ConfigurationSection config;
+	private File playerdata;
 	
 	public RankManager(JavaPlugin plugin, ConfigurationSection config) {
 		this.plugin = plugin;
 		this.config = config;
 		saver = new AsyncSaver();
 		saveQ = new LinkedList<RankEntity>();
-		loadedranks = new HashSet<RankEntity>();
+		loadedranks = new HashMap<String,PlayerRankEntity>();
+		playerdata = new File(this.plugin.getDataFolder(),"rankings");
+		playerdata.mkdirs();
 		plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new EntityCleaner(), 20*(60*2));
 	}
 	
@@ -57,7 +62,13 @@ public class RankManager {
 	
 	//Get the rank entity for the specified player
 	public PlayerRankEntity getPlayerRankEntity(String name) {
-		return null;
+		if(this.loadedranks.containsKey(name)) {
+			return this.loadedranks.get(name);
+		}
+		
+		PlayerRankEntity entity = new PlayerRankEntity(name, this.playerdata);
+		this.loadedranks.put(name, entity);
+		return entity;
 	}
 	
 	protected void updateRank(RankEntity ra, double compare, double result) {
@@ -73,7 +84,7 @@ public class RankManager {
 		}
 	}
 	public void saveAll(boolean async) {
-		Iterator<RankEntity> entities = loadedranks.iterator();
+		Iterator<PlayerRankEntity> entities = loadedranks.values().iterator();
 		while(entities.hasNext()) {
 			RankEntity entity = entities.next();
 			if(async) {
@@ -88,7 +99,7 @@ public class RankManager {
 	}
 	private class EntityCleaner implements Runnable {
 		public void run() {
-			Iterator<RankEntity> entities = loadedranks.iterator();
+			Iterator<PlayerRankEntity> entities = loadedranks.values().iterator();
 			while(entities.hasNext()) {
 				RankEntity entity = entities.next();
 				if(isOld(entity)) {
@@ -124,7 +135,7 @@ public class RankManager {
 	private class AsyncSaver implements Runnable {
 		public void run() {
 			RankEntity entity = saveQ.poll();
-			if(entity != null && loadedranks.contains(entity)) {
+			if(entity != null && loadedranks.containsValue(entity)) {
 				entity.save();
 				if(isOld(entity)) {
 					loadedranks.remove(entity);

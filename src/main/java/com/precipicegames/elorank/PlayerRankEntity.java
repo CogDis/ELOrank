@@ -11,7 +11,7 @@ public class PlayerRankEntity extends RankEntity {
 	private File data;
 	private long playerupdate;
 	protected PlayerRankEntity(String name, File dataFolder) {
-		data = new File(dataFolder,name);
+		data = new File(dataFolder,name + ".yml");
 		playername = name;
 		load();
 	}
