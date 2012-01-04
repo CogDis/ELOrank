@@ -113,7 +113,7 @@ public class RankManager {
 		
 		boolean changed = false;
 		long timespent = System.currentTimeMillis() - playerentity.getPlayerLastUpdate();
-		long timethreshold = config.getLong("playerkilltimeout",1000*60*60*24);
+		long timethreshold = config.getLong("playerkilltimeout",1000*60*60*10);
 		//long penaltyfactor = config.getLong("playerpenaltyfactor",1000*60*60*24);
 		if(timespent >= timethreshold)
 		{
