@@ -24,7 +24,6 @@ public class PlayerRankEntity extends RankEntity {
 		env = new EnvironmentRankEntity();
 		env.setRank(config.getDouble("env-rank", 1000));
 		playerupdate = config.getLong("player-last-update", System.currentTimeMillis());
-		load();
 	}
 	public String getPlayer() {
 		return playername;

@@ -10,6 +10,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.precipicegames.elorank.listener.RankChangeEvent;
+
 public class RankManager {
 	//private HashSet<RankEntity> loadedranks;
 	private HashMap<String,PlayerRankEntity> loadedranks;
@@ -50,8 +52,11 @@ public class RankManager {
 	public void broadcastUpdate(PlayerRankEntity playerentity, double oldrank) {
 		Player p = plugin.getServer().getPlayer(playerentity.getPlayer());
 		if(p != null) {
-			p.sendMessage("ELO rank: " + Math.round(playerentity.getRank()));
-			p.sendMessage("Was: " + Math.round(oldrank) + ", thats a change of: " + Math.round(playerentity.getRank() - oldrank));
+			//sendMessage("ELO rank: " + Math.round(playerentity.getRank()));
+			p.sendMessage("New rank: " + Math.round(playerentity.getRank()) + ", thats a change of: " + Math.round(playerentity.getRank() - oldrank));
+			//System.out.println("Was: " + Math.round(oldrank) + ", thats a change of: " + Math.round(playerentity.getRank() - oldrank));
+			RankChangeEvent rankEvent = new RankChangeEvent(p,playerentity.getRank(),playerentity);
+			plugin.getServer().getPluginManager().callEvent(rankEvent);
 		}
 	}
 	
@@ -156,6 +161,7 @@ public class RankManager {
 			double eold = entity.getRank();
 			this.updateRank(env, eold, 1);
 			this.updateRank(entity, envold, 0);
+			this.broadcastUpdate(entity, eold);
 		}
 		
 		//The player killed a monster/mob
@@ -166,6 +172,7 @@ public class RankManager {
 			double eold = entity.getRank();
 			this.updateRank(entity, envold, 1);
 			this.updateRank(env, eold, 0);
+			this.broadcastUpdate(entity, eold);
 		}
 		
 		//The player killed another player
@@ -176,6 +183,8 @@ public class RankManager {
 			double eold = entity.getRank();
 			this.updateRank(entity, vold , 1);
 			this.updateRank(ventity, eold, 0);
+			this.broadcastUpdate(entity, eold);
+			this.broadcastUpdate(ventity, vold);
 		}
 		
 		// TODO Auto-generated method stub

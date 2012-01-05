@@ -26,11 +26,12 @@ public class EntityELOListener extends EntityListener implements Runnable {
 	}
 	public EntityELOListener(RankManager man) {
 		rankman = man;
+		hitlist = new HashMap<Entity,LastHit>();
 	}
 	public void onEntityDeath(EntityDeathEvent event) {
 		if(!(event.getEntity() instanceof Player || event.getEntity() instanceof Monster))
 			return;
-		
+		System.out.println("debug line 34");
 		LastHit lh = hitlist.get(event.getEntity());
 		if(lh != null && System.currentTimeMillis() - lh.time < 1000*60) {
 			if(event.getEntity() instanceof Player) {
@@ -55,7 +56,7 @@ public class EntityELOListener extends EntityListener implements Runnable {
 			hitter = (hitter instanceof Projectile) ? ((Projectile) hitter).getShooter() : hitter;
 			if(hitter instanceof Player) {
 				LastHit lh = new LastHit((Player)hitter);
-				hitlist.get(lh);
+				hitlist.put(event.getEntity(),lh);
 			}
 		}
 	}

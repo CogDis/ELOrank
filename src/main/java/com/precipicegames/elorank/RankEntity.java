@@ -10,8 +10,9 @@ public abstract class RankEntity {
 	}
 	protected double calculate(double comparedrate, double result) {
 		double mer = getRank();
-		double delta = mer - comparedrate;
+		double delta = comparedrate - mer;
 		double chance = 1.0/(1.0 +Math.pow(10, delta/400.0));
+		System.out.println(chance);
 		double ratedelta = RankEntity.kFactor*(result - chance);
 		if(ratedelta > kFactor)
 			ratedelta = kFactor;
