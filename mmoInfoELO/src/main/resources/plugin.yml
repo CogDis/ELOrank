@@ -1,0 +1,7 @@
+name: mmoInfoELO
+main: mmo.Info.mmoInfoELO.MMOInfoElo
+version: 1.0
+author: dotblank <dotblank@precipicegames.com>
+depend: [ELOrank,Spout,mmoCore]
+
+description: Provides a display in mmoInfo for the player's rank
